@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Business Intelligence Platform</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 40px;
+        }
+
+        h1 {
+            font-weight: 600;
+            margin-bottom: 40px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .kpi-card {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 14px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            transition: transform 0.2s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .kpi-title {
+            font-size: 13px;
+            color: #94a3b8;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .query-box {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 14px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        input {
+            width: 75%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        button:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #0f172a;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #1e293b;
+            text-align: left;
+        }
+
+        th {
+            background: #1e293b;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+
+        tr:hover {
+            background: #1e293b;
+        }
+
+        pre {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 10px;
+            overflow-x: auto;
+        }
+
+        .meta {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .error {
+            color: #f87171;
+            font-weight: bold;
+        }
+
+        hr {
+            border: 1px solid #1e293b;
+            margin: 25px 0;
+        }
+
+        #output {
+            margin-top: 25px;
+        }
+
+        .history-box {
+            margin-top: 30px;
+            padding: 20px;
+            background: #1e293b;
+            border-radius: 14px;
+        }
+
+        .history-item {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .history-item:hover {
+            color: #3b82f6;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>AI-Powered Business Intelligence Platform</h1>
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-title">Total Revenue</div>
+            <div class="kpi-value" id="kpi-revenue">--</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-title">Total Orders</div>
+            <div class="kpi-value" id="kpi-orders">--</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-title">Total Products</div>
+            <div class="kpi-value" id="kpi-products">--</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-title">Total Payments</div>
+            <div class="kpi-value" id="kpi-payments">--</div>
+        </div>
+    </div>
+
+    <div class="query-box">
+        <input type="text" id="question" placeholder="Ask business question..." />
+        <button id="askBtn" onclick="ask()">Ask</button>
+        <div id="output"></div>
+    </div>
+
+    <div class="history-box">
+        <h3>Recent Queries</h3>
+        <div id="history"></div>
+    </div>
+
+</div>
+
+<script>
+
+let queryHistory = [];
+
+async function loadKPIs() {
+    const response = await fetch("/kpis");
+    const data = await response.json();
+
+    document.getElementById("kpi-revenue").innerText = "$" + data.total_revenue;
+    document.getElementById("kpi-orders").innerText = data.total_orders;
+    document.getElementById("kpi-products").innerText = data.total_products;
+    document.getElementById("kpi-payments").innerText = data.total_payments;
+}
+
+async function ask() {
+    const questionInput = document.getElementById("question");
+    const question = questionInput.value.trim();
+    const output = document.getElementById("output");
+    const button = document.getElementById("askBtn");
+
+    if (!question) return;
+
+    button.disabled = true;
+    button.innerText = "Analyzing...";
+    output.innerHTML = "<p>Analyzing data... Please wait.</p>";
+
+    try {
+        const response = await fetch("/query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question })
+        });
+
+        const data = await response.json();
+        output.innerHTML = "";
+
+        if (data.error) {
+            output.innerHTML = `<p class="error">${data.error}</p>`;
+            return;
+        }
+
+        if (data.clarification) {
+            output.innerHTML = `<p>${data.clarification}</p>`;
+            return;
+        }
+
+        addToHistory(question);
+
+        output.innerHTML += `<h3>Generated SQL</h3>`;
+        output.innerHTML += `<pre>${data.sql}</pre>`;
+
+        output.innerHTML += `<h3>Explanation</h3>`;
+        output.innerHTML += `<p>${data.explanation}</p>`;
+
+        output.innerHTML += `<div class="meta">⏱ Execution Time: ${data.execution_time} seconds</div>`;
+        output.innerHTML += `<div class="meta">📊 ${data.row_count} rows returned</div>`;
+        output.innerHTML += `<hr>`;
+
+        if (data.result && data.result.length > 0) {
+            let table = "<table><tr>";
+            Object.keys(data.result[0]).forEach(key => {
+                table += `<th>${key}</th>`;
+            });
+            table += "</tr>";
+
+            data.result.forEach(row => {
+                table += "<tr>";
+                Object.values(row).forEach(value => {
+                    table += `<td>${value}</td>`;
+                });
+                table += "</tr>";
+            });
+
+            table += "</table>";
+            table += `<button onclick="exportToCSV()">Export CSV</button>`;
+            output.innerHTML += table;
+        }
+
+    } catch (err) {
+        output.innerHTML = `<p class="error">Something went wrong.</p>`;
+    } finally {
+        button.disabled = false;
+        button.innerText = "Ask";
+    }
+}
+
+function addToHistory(question) {
+    queryHistory.unshift(question);
+    if (queryHistory.length > 5) queryHistory.pop();
+
+    const historyDiv = document.getElementById("history");
+    historyDiv.innerHTML = "";
+
+    queryHistory.forEach(q => {
+        historyDiv.innerHTML += `
+            <div class="history-item" onclick="reuseQuery('${q.replace(/'/g, "\\'")}')">
+                • ${q}
+            </div>
+        `;
+    });
+}
+
+function reuseQuery(q) {
+    document.getElementById("question").value = q;
+}
+
+function exportToCSV() {
+    let table = document.querySelector("table");
+    if (!table) return;
+
+    let csv = [];
+    for (let row of table.rows) {
+        let cols = Array.from(row.cells).map(cell => cell.innerText);
+        csv.push(cols.join(","));
+    }
+
+    let blob = new Blob([csv.join("\n")], { type: "text/csv" });
+    let link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "result.csv";
+    link.click();
+}
+
+document.getElementById("question").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        ask();
+    }
+});
+
+loadKPIs();
+
+</script>
+
+</body>
+</html>
