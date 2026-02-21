@@ -1,5 +1,6 @@
 from core.config import USE_MOCK_LLM
 from llm.gemini_config import generate_response
+from llm.intent_detector import detect_intent
 import re
 
 
@@ -13,63 +14,36 @@ def clean_sql_output(sql: str) -> str:
 
 
 # --------------------------------------------
-# SMART MOCK GENERATOR
+# RULE-BASED SMART GENERATOR
 # --------------------------------------------
-def mock_generate_sql(user_query: str) -> str:
+def rule_based_sql(user_query: str) -> str:
     q = user_query.lower().strip()
 
-    # TOP PRODUCT BY PROFIT
-    if "top product" in q and "profit" in q:
-        return """
-        SELECT p.name,
-               SUM(oi.quantity * (oi.unit_price - p.cost_price)) AS profit
-        FROM order_items oi
-        JOIN products p ON oi.product_id = p.id
-        GROUP BY p.name
-        ORDER BY profit DESC
-        LIMIT 1;
-        """
+    # COUNT PAYMENTS
+    if ("how many" in q or "count" in q) and "payment" in q:
+        return "SELECT COUNT(*) AS total_payments FROM payments;"
 
-    # TOP PRODUCTS BY REVENUE
-    if "top" in q and "revenue" in q:
-        return """
-        SELECT p.name,
-               SUM(oi.quantity * oi.unit_price) AS revenue
-        FROM order_items oi
-        JOIN products p ON oi.product_id = p.id
-        GROUP BY p.name
-        ORDER BY revenue DESC
-        LIMIT 5;
-        """
+    # COUNT ORDERS
+    if ("how many" in q or "count" in q) and "order" in q:
+        return "SELECT COUNT(*) AS total_orders FROM orders;"
+
+    # AVERAGE ORDER VALUE
+    if "average" in q and "order" in q:
+        return "SELECT AVG(total_amount) AS avg_order_value FROM orders;"
 
     # TOTAL REVENUE
-    if "total revenue" in q:
+    if "total revenue" in q or "sum revenue" in q:
         return """
         SELECT COALESCE(SUM(amount), 0) AS total_revenue
         FROM payments
         WHERE status = 'Completed';
         """
 
-    # TOTAL ORDERS
-    if "total orders" in q:
-        return "SELECT COUNT(*) AS total_orders FROM orders;"
+    # TOTAL PRODUCTS
+    if "total product" in q:
+        return "SELECT COUNT(*) AS total_products FROM products;"
 
-    # AVERAGE REVENUE PER CUSTOMER
-    if "average revenue per customer" in q:
-        return """
-        SELECT AVG(customer_total.total_revenue) AS avg_revenue_per_customer
-        FROM (
-            SELECT o.customer_id,
-                   SUM(p.amount) AS total_revenue
-            FROM orders o
-            JOIN payments p ON p.order_id = o.id
-            WHERE p.status = 'Completed'
-            GROUP BY o.customer_id
-        ) customer_total;
-        """
-
-    # DEFAULT SAFE FALLBACK
-    return "SELECT * FROM orders LIMIT 5;"
+    return None
 
 
 # --------------------------------------------
@@ -77,22 +51,26 @@ def mock_generate_sql(user_query: str) -> str:
 # --------------------------------------------
 def generate_sql(user_query: str, schema: str):
 
-    # 🔥 USE MOCK IF ENABLED
-    if USE_MOCK_LLM:
-        return mock_generate_sql(user_query)
+    # 🔥 1️⃣ RULE-BASED OVERRIDE (FAST + ACCURATE)
+    rule_sql = rule_based_sql(user_query)
+    if rule_sql:
+        return rule_sql
 
-    # 🔥 REAL GEMINI MODE
+    # 🔥 2️⃣ MOCK MODE
+    if USE_MOCK_LLM:
+        return "SELECT * FROM orders LIMIT 5;"
+
+    # 🔥 3️⃣ REAL LLM MODE
+    intent = detect_intent(user_query)
+
     prompt = f"""
 You are a senior PostgreSQL data analyst.
 
 Database Schema:
 {schema}
 
-Relationships:
-- orders.customer_id → customers.id
-- payments.order_id → orders.id
-- order_items.order_id → orders.id
-- order_items.product_id → products.id
+Intent Detected:
+{intent}
 
 Rules:
 - Generate ONLY valid PostgreSQL SELECT queries.
@@ -100,8 +78,11 @@ Rules:
 - Do NOT explain anything.
 - Do NOT use markdown.
 - Return only raw SQL.
-- Use proper JOINs when required.
-- Always use LIMIT when returning ranked results.
+- Use COUNT() for how many questions.
+- Use AVG() for average questions.
+- Use SUM() for total questions.
+- Do NOT use SELECT * unless explicitly requested.
+- Use LIMIT only when ranking (top N).
 
 User Question:
 {user_query}
@@ -110,5 +91,4 @@ SQL:
 """
 
     raw_sql = generate_response(prompt)
-
     return clean_sql_output(raw_sql)

@@ -7,8 +7,18 @@
         body {
             margin: 0;
             font-family: 'Segoe UI', sans-serif;
-            background: #0f172a;
+            background-image: url("/static/images/bg1.jpg");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
             color: #e2e8f0;
+        }
+
+        /* Dark overlay */
+        .overlay {
+            background: rgba(0, 0, 0, 0.75);
+            min-height: 100vh;
         }
 
         .container {
@@ -20,6 +30,7 @@
         h1 {
             font-weight: 600;
             margin-bottom: 40px;
+            text-align: center;
         }
 
         .kpi-grid {
@@ -30,11 +41,12 @@
         }
 
         .kpi-card {
-            background: #1e293b;
+            background: rgba(30, 41, 59, 0.85);
             padding: 25px;
             border-radius: 14px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
             transition: transform 0.2s ease;
+            backdrop-filter: blur(4px);
         }
 
         .kpi-card:hover {
@@ -55,10 +67,11 @@
         }
 
         .query-box {
-            background: #1e293b;
+            background: rgba(30, 41, 59, 0.9);
             padding: 30px;
             border-radius: 14px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
         }
 
         input {
@@ -95,7 +108,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            background: #0f172a;
+            background: rgba(15, 23, 42, 0.9);
             border-radius: 10px;
             overflow: hidden;
         }
@@ -117,7 +130,7 @@
         }
 
         pre {
-            background: #0f172a;
+            background: rgba(15, 23, 42, 0.9);
             padding: 15px;
             border-radius: 10px;
             overflow-x: auto;
@@ -146,8 +159,9 @@
         .history-box {
             margin-top: 30px;
             padding: 20px;
-            background: #1e293b;
+            background: rgba(30, 41, 59, 0.9);
             border-radius: 14px;
+            backdrop-filter: blur(4px);
         }
 
         .history-item {
@@ -164,7 +178,7 @@
 </head>
 
 <body>
-
+<div class="overlay">
 <div class="container">
 
     <h1>AI-Powered Business Intelligence Platform</h1>
@@ -203,9 +217,9 @@
     </div>
 
 </div>
+</div>
 
 <script>
-
 let queryHistory = [];
 
 async function loadKPIs() {
@@ -334,7 +348,6 @@ document.getElementById("question").addEventListener("keypress", function(event)
 });
 
 loadKPIs();
-
 </script>
 
 </body>
