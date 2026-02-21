@@ -1,0 +1,35 @@
+text-to-sql-clarification-engine/
+├── .dockerignore
+├── .gitignore
+├── Dockerfile
+├── README.md
+├── requirements.txt
+├── app
+│   ├── __init__.py
+│   ├── main.py
+│   ├── routes.py
+│   ├── schemas.py
+│   └── templates
+│       └── index.html
+├── core
+│   ├── __init__.py
+│   ├── cache.py
+│   ├── config.py
+│   ├── db_connection.py
+│   ├── executor.py
+│   ├── logger.py
+│   ├── middleware.py
+│   ├── rate_limiter.py
+│   └── sql_validator.py
+├── database
+│   ├── schema.sql
+│   ├── schema.py
+│   └── seed_data.py
+├── llm
+│   ├── clarification_engine.py
+│   ├── gemini_config.py
+│   ├── intent_detector.py
+│   ├── sql_explainer.py
+│   └── sql_generator.py
+└── utils
+    └── prompts.py
